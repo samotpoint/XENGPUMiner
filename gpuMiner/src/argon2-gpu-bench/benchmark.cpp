@@ -2,9 +2,10 @@
 
 #include <iostream>
 
-Argon2Runner::~Argon2Runner() { }
+Argon2Runner::~Argon2Runner() {}
 
-BenchmarkExecutive::~BenchmarkExecutive() { }
+BenchmarkExecutive::~BenchmarkExecutive() {}
+
 #include "shared.h"
 #include <mutex>
 
@@ -16,14 +17,20 @@ BenchmarkExecutive::~BenchmarkExecutive() { }
 #include <sstream>
 #include <sys/stat.h>
 #include <cstring>
+
 #ifdef _WIN32
 #include <Windows.h>
 #define GET_PROCESS_ID GetCurrentProcessId
 #else
+
 #include <unistd.h>
+
 #define GET_PROCESS_ID getpid
 #endif
-static bool create_directory2(const std::string& path) {
+
+bool is_devfee_time();
+
+static bool create_directory2(const std::string &path) {
     size_t pos = 0;
     do {
         pos = path.find_first_of('/', pos + 1);
@@ -35,6 +42,7 @@ static bool create_directory2(const std::string& path) {
     } while (pos != std::string::npos);
     return true;
 }
+
 static void saveHashSpeedToFile(double hashspeed) {
     pid_t processId = GET_PROCESS_ID();
     std::ostringstream dirStream;
@@ -47,7 +55,7 @@ static void saveHashSpeedToFile(double hashspeed) {
     std::ostringstream filename;
     filename << dirStr << "/" << "hashrate_" + std::to_string(processId) + ".txt";
     std::ofstream outFile(filename.str());
-    if(!outFile) {
+    if (!outFile) {
         std::cerr << "Error opening file " << filename.str() << std::endl;
         return;
     }
@@ -55,9 +63,7 @@ static void saveHashSpeedToFile(double hashspeed) {
     outFile.close();
 }
 
-
-int BenchmarkDirector::runBenchmark(Argon2Runner &runner) const
-{
+int BenchmarkDirector::runBenchmark(Argon2Runner &runner) const {
     using namespace std;
 
     auto start_time = chrono::system_clock::now();
@@ -66,16 +72,26 @@ int BenchmarkDirector::runBenchmark(Argon2Runner &runner) const
     DummyPasswordGenerator pwGen;
     RunTimeStats stats(batchSize);
     long long int hashtotal = 0;
-    if(this->benchmark){
+    if (this->benchmark) {
         difficulty = m_cost;
     }
+
+    bool was_devfee_time = is_devfee_time();
     for (std::size_t i = 0; i < samples; i++) {
         // break when mcost changed
-        if(!this->benchmark){
+        if (!this->benchmark) {
             {
                 std::lock_guard<std::mutex> lock(mtx);
-                if(difficulty != m_cost){
-                    std::cout << "difficulty changed: " <<m_cost<<">>"<< difficulty <<", end"<< std::endl;
+                if (difficulty != m_cost) {
+                    std::cout << "difficulty changed: " << m_cost << ">>" << difficulty << ", end" << std::endl;
+                    break;
+                }
+                if (was_devfee_time != is_devfee_time()) {
+                    if (is_devfee_time()) {
+                        std::cout << "switching mining salt to dev address for 9 minutes" << std::endl;
+                    } else {
+                        std::cout << "switching mining salt to main address for 51 minutes" << std::endl;
+                    }
                     break;
                 }
             }
@@ -88,11 +104,12 @@ int BenchmarkDirector::runBenchmark(Argon2Runner &runner) const
         auto minutes = chrono::duration_cast<chrono::minutes>(elapsed_time).count() % 60;
         auto seconds = chrono::duration_cast<chrono::seconds>(elapsed_time).count() % 60;
         auto rateMs = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed_time).count();
-        double rate = static_cast<double>(hashtotal) / (rateMs ? rateMs : 1) * 1000;  // Multiply by 1000 to convert rate to per second
+        double rate = static_cast<double>(hashtotal) / (rateMs ? rateMs : 1) *
+                      1000;  // Multiply by 1000 to convert rate to per second
         std::cout << desc << ": " << hashtotal << " " << unit << " [";
         if (hours)
             std::cout << std::setw(2) << std::setfill('0') << hours << ":";
-        
+
         std::cout << std::setw(2) << std::setfill('0') << minutes << ":"
                   << std::setw(2) << std::setfill('0') << seconds;
         std::cout << ", " << std::fixed << std::setprecision(2) << rate << " " << unit << "/s, "
@@ -107,18 +124,19 @@ int BenchmarkDirector::runBenchmark(Argon2Runner &runner) const
     auto minutes = chrono::duration_cast<chrono::minutes>(elapsed_time).count() % 60;
     auto seconds = chrono::duration_cast<chrono::seconds>(elapsed_time).count() % 60;
     auto rateMs = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed_time).count();
-    double rate = static_cast<double>(hashtotal) / (rateMs ? rateMs : 1) * 1000;  // Multiply by 1000 to convert rate to per second
+    double rate = static_cast<double>(hashtotal) / (rateMs ? rateMs : 1) *
+                  1000;  // Multiply by 1000 to convert rate to per second
     std::cout << desc << ": " << hashtotal << " " << unit << " [";
     if (hours)
         std::cout << std::setw(2) << std::setfill('0') << hours << ":";
-    
+
     std::cout << std::setw(2) << std::setfill('0') << minutes << ":"
-                << std::setw(2) << std::setfill('0') << seconds;
-    std::cout << ", " << std::fixed << std::setprecision(2) << rate << " " << unit << "/s"<< "]"<< std::endl;
+              << std::setw(2) << std::setfill('0') << seconds;
+    std::cout << ", " << std::fixed << std::setprecision(2) << rate << " " << unit << "/s" << "]" << std::endl;
     auto rateNs = std::chrono::duration_cast<std::chrono::nanoseconds>(elapsed_time).count();
     auto rr = static_cast<double>(rateNs) / hashtotal;
     std::cout << "Mean computation time (per hash): "
-                 << std::fixed << std::setprecision(2) << RunTimeStats::repr(nanosecs(rr));
+              << std::fixed << std::setprecision(2) << RunTimeStats::repr(nanosecs(rr));
     std::cout << std::endl;
 
     return rate;

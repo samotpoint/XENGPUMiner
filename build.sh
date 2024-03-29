@@ -5,39 +5,14 @@ original_dir=$(pwd)
 
 # Default values
 COMPUTE_TYPE="CUDA"
-
-# Read parameters
-while [[ "$#" -gt 0 ]]; do
-    case $1 in
-        -compute_type) COMPUTE_TYPE="$2"; shift ;;
-        -cuda_arch) CUDA_ARCH="$2"; shift ;;
-        *) echo "Unknown parameter passed: $1"; exit 1 ;;
-    esac
-    shift
-done
-
+CUDA_ARCH_SM="sm_$(nvidia-smi -i=0 --query-gpu=compute_cap --format=csv,noheader | sed "s/\.//")"
 
 # Create and navigate to the build directory
 mkdir -p build
 cd build || exit
 
-# Check if CUDA_ARCH is set, if not, perform a different action
-if [ -z "$CUDA_ARCH" ]; then
-    # Run CMake and pass the arguments
-    cmake ..
-
-    make
-else
-    cmake -DCUDA_ARCH=$CUDA_ARCH ..
-    # Compile the project
-    make
-fi
+cmake ..
+make
 
 # Return to the original working directory
 cd "$original_dir" || exit
-
-if [ -e miner.sh ]; then
-    chmod +x miner.sh
-else
-    echo "miner.sh does not exist."
-fi

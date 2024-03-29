@@ -81,66 +81,26 @@ target_include_directories(argon2-cuda INTERFACE
     $<INSTALL_INTERFACE:include>
 )
 target_link_libraries(argon2-cuda argon2-gpu-common)
-
-add_library(argon2-opencl SHARED
-gpuMiner/lib/argon2-opencl/device.cpp
-gpuMiner/lib/argon2-opencl/globalcontext.cpp
-gpuMiner/lib/argon2-opencl/kernelloader.cpp
-gpuMiner/lib/argon2-opencl/programcontext.cpp
-gpuMiner/lib/argon2-opencl/processingunit.cpp
-gpuMiner/lib/argon2-opencl/kernelrunner.cpp
-)
-target_include_directories(argon2-opencl INTERFACE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/gpuMiner/include>
-    $<INSTALL_INTERFACE:include>
-)
-target_include_directories(argon2-opencl PRIVATE
-gpuMiner/include/argon2-opencl
-gpuMiner/lib/argon2-opencl
-)
-
-if (UNIX AND NOT APPLE)
-    target_link_libraries(argon2-opencl
-        argon2-gpu-common -lOpenCL
-    )
-endif()
-if (APPLE)
-    target_link_libraries(argon2-opencl
-        argon2-gpu-common "-framework OpenCL"
-    )
-endif()
-if (WIN32)
-    target_link_libraries(argon2-opencl
-        argon2-gpu-common OpenCL.lib
-    )
-endif()
+target_link_libraries(argon2-gpu-common)
 
 add_executable(xengpuminer
 gpuMiner/src/argon2-gpu-bench/cpuexecutive.cpp
 gpuMiner/src/argon2-gpu-bench/cudaexecutive.cpp
-gpuMiner/src/argon2-gpu-bench/openclexecutive.cpp
 gpuMiner/src/argon2-gpu-bench/benchmark.cpp
 gpuMiner/src/argon2-gpu-bench/main.cpp
 )
 target_include_directories(xengpuminer PRIVATE gpuMiner/src/argon2-gpu-bench)
 target_link_libraries(xengpuminer
-    argon2-cuda argon2-opencl argon2 -lOpenCL
+    argon2-cuda argon2
 )
 
 install(
-    TARGETS argon2-gpu-common argon2-opencl argon2-cuda
+    TARGETS argon2-gpu-common argon2-cuda
     DESTINATION ${LIBRARY_INSTALL_DIR}
 )
 install(FILES
 gpuMiner/include/argon2-gpu-common/argon2-common.h
 gpuMiner/include/argon2-gpu-common/argon2params.h
-gpuMiner/include/argon2-opencl/cl.hpp
-gpuMiner/include/argon2-opencl/opencl.h
-gpuMiner/include/argon2-opencl/device.h
-gpuMiner/include/argon2-opencl/globalcontext.h
-gpuMiner/include/argon2-opencl/programcontext.h
-gpuMiner/include/argon2-opencl/processingunit.h
-gpuMiner/include/argon2-opencl/kernelrunner.h
 gpuMiner/include/argon2-cuda/cudaexception.h
 gpuMiner/include/argon2-cuda/kernelrunner.h
 gpuMiner/include/argon2-cuda/device.h

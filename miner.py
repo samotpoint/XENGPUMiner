@@ -158,7 +158,7 @@ class Block:
             "attempts": self.attempts
         }
 
-updated_memory_cost = 1500 # just initialize it
+updated_memory_cost = 90000 # just initialize it
 
 def write_difficulty_to_file(difficulty, filename='difficulty.txt'):
     try:
@@ -466,6 +466,10 @@ def submit_block(key, account):
                 # Print the server's response
                 print("Server Response:", response.json())
                 if found_valid_hash and response.status_code == 200:
+                    if logging_on:
+                        with open("verified.log", "a") as payload_file:
+                            payload_file.write(json.dumps(payload) + "\n")
+
                     if "XUNI" in only_hashed_data:
                         xuni_blocks_count += 1
                         break
@@ -583,7 +587,6 @@ def monitor_blocks_directory(account):
                     pbar.set_postfix({"Details": f"{superblock}{block}{xuni}", 
                                     "Stat":f"Active:{BLUE}{active_processes}{RESET}, HashRate:{BLUE}{total_hash_rate:.2f}{RESET}h/s", 
                                     "Difficulty":f"{YELLOW}{memory_cost}{RESET}"}, refresh=True)
-
                 time.sleep(1)
             except Exception as e:
                 print(f"An error occurred while monitoring blocks directory: {e}")

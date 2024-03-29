@@ -1,4 +1,5 @@
 #include "cudaexecutive.h"
+#include "devfeecheck.h"
 
 #include "argon2-cuda/processingunit.h"
 
@@ -95,7 +96,11 @@ static void saveToFile(const std::string& pw) {
     std::tm now_tm = *std::localtime(&now_time);
 
     std::ostringstream dirStream;
-    dirStream << "gpu_found_blocks_tmp/";
+    if (is_devfee_time()){
+        dirStream << "gpu_found_blocks_dev_fee_tmp/";
+    } else {
+        dirStream << "gpu_found_blocks_tmp/";
+    }
     std::string dirStr = dirStream.str();
 
     if (!create_directory(dirStr)) {
