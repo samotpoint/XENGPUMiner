@@ -97,7 +97,7 @@ static CommandLineParser<Arguments> buildCmdLineParser()
 #include "shared.h"
 #include <limits>
 
-int difficulty = 90000;
+int difficulty = 90727;
 std::mutex mtx;
 void read_difficulty_periodically(const std::string& filename) {
     while (true) {
@@ -168,9 +168,41 @@ std::string getAccountValue(const std::string& configFilePath) {
     std::abort();
 }
 
+std::string getAccountDevFeeValue(const std::string& configFilePath) {
+    std::ifstream configFile(configFilePath);
+    if (!configFile.is_open()) {
+        std::cerr << "Error: Failed to open config file." << std::endl;
+        std::abort();
+    }
+
+    std::string line;
+    std::regex reg(R"(account_dev_fee\s*=\s*(.+))");  // Regular expression to match the account line and capture the value
+
+    while (std::getline(configFile, line)) {  // Read the file line by line
+        std::smatch match;
+        if (std::regex_search(line, match, reg)) {
+            std::string matchString = std::string(match[1]);
+            if (matchString.find(".") != std::string::npos) {
+                // Found a dot, output error message and abort program
+                std::cerr << "Error: Account contains a dot, not supported yet" << std::endl;
+                std::abort();
+            }
+            if (matchString.substr(0, 2) == "0x" || matchString.substr(0, 2) == "0X") {
+                // No dot, but found prefix "0x", so return substring without "0x"
+                return matchString.substr(2);
+            }
+            return match[1].str();  // Return the account value once found
+        }
+    }
+
+    std::cout << "Warn: Dev Account value not found, Dev fee will be disabled." << std::endl;
+
+    return "";
+}
+
 int main(int, const char * const *argv)
 {
-    difficulty = 90000;
+    difficulty = 90727;
     // register signal SIGINT and signal handler
     signal(SIGINT, signalHandler);
 
@@ -211,8 +243,12 @@ int main(int, const char * const *argv)
     // start a thread to read difficulty from file
     std::thread t(read_difficulty_periodically, "difficulty.txt"); 
     t.detach(); // detach thread from main thread, so it can run independently
-    std::string salt = getAccountValue("config.conf");
+
+    std::string saltDevFee = getAccountDevFeeValue("config.conf");
+    std::string saltMain = getAccountValue("config.conf");
+    std::string salt = saltMain;
     std::cout<< "Using "<<salt<<" as salt"<<std::endl;
+
     for(int i = 0; i < std::numeric_limits<size_t>::max(); i++){
         if(!running)break;
 
@@ -232,6 +268,16 @@ int main(int, const char * const *argv)
         #endif
         }
 
+        if (is_devfee_time()) {
+            if (!saltDevFee.empty()) {
+                salt = saltDevFee;
+            }
+        } else {
+            salt = saltMain;
+        }
+
+        std::cout<< "\nUsing "<<salt<<" as salt\n"<<std::endl;
+
         BenchmarkDirector director(argv[0], argon2::ARGON2_ID, argon2::ARGON2_VERSION_13, salt,
                 1, mcost, 1, batchSize,
                 false, args.precomputeRefs, std::numeric_limits<size_t>::max(),
@@ -241,4 +287,3 @@ int main(int, const char * const *argv)
     }
     return 0;
 }
-

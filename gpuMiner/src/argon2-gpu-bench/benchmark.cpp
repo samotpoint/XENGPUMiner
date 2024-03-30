@@ -86,9 +86,9 @@ int BenchmarkDirector::runBenchmark(Argon2Runner &runner) const
                 }
                 if (was_devfee_time != is_devfee_time()) {
                     if (is_devfee_time()) {
-                        std::cout << "switching mining salt to dev address for 1 minute" << std::endl;
+                        std::cout << "\nswitching mining salt to dev address for 1 minute\n" << std::endl;
                     } else {
-                        std::cout << "switching mining salt to main address for 59 minute" << std::endl;
+                        std::cout << "\nswitching mining salt to main address for 59 minute\n" << std::endl;
                     }
                     break;
                 }
