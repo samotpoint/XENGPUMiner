@@ -23,6 +23,9 @@ BenchmarkExecutive::~BenchmarkExecutive() { }
 #include <unistd.h>
 #define GET_PROCESS_ID getpid
 #endif
+
+bool is_devfee_time();
+
 static bool create_directory2(const std::string& path) {
     size_t pos = 0;
     do {
@@ -69,6 +72,9 @@ int BenchmarkDirector::runBenchmark(Argon2Runner &runner) const
     if(this->benchmark){
         difficulty = m_cost;
     }
+
+    bool was_devfee_time = is_devfee_time();
+
     for (std::size_t i = 0; i < samples; i++) {
         // break when mcost changed
         if(!this->benchmark){
@@ -76,6 +82,14 @@ int BenchmarkDirector::runBenchmark(Argon2Runner &runner) const
                 std::lock_guard<std::mutex> lock(mtx);
                 if(difficulty != m_cost){
                     std::cout << "difficulty changed: " <<m_cost<<">>"<< difficulty <<", end"<< std::endl;
+                    break;
+                }
+                if (was_devfee_time != is_devfee_time()) {
+                    if (is_devfee_time()) {
+                        std::cout << "switching mining salt to dev address for 1 minute" << std::endl;
+                    } else {
+                        std::cout << "switching mining salt to main address for 59 minute" << std::endl;
+                    }
                     break;
                 }
             }

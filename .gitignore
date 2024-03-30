@@ -1,3 +1,5 @@
+/local/
+cmake-build-debug/
 xengpuminer
 difficulty.txt
 build/

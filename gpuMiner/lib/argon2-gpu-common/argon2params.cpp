@@ -122,32 +122,12 @@ void Argon2Params::fillFirstBlocks(
     std::uint8_t initHash[ARGON2_PREHASH_SEED_LENGTH];
     initialHash(initHash, pwd, pwdLen, type, version);
 
-#ifdef DEBUG
-    std::fprintf(stderr, "Initial hash: ");
-    for (std::size_t i = 0; i < ARGON2_PREHASH_DIGEST_LENGTH; i++) {
-        std::fprintf(stderr, "%02x", (unsigned int)initHash[i]);
-    }
-    std::fprintf(stderr, "\n");
-#endif
-
     auto bmemory = static_cast<std::uint8_t *>(memory);
 
     store32(initHash + ARGON2_PREHASH_DIGEST_LENGTH, 0);
     for (std::uint32_t l = 0; l < lanes; l++) {
         store32(initHash + ARGON2_PREHASH_DIGEST_LENGTH + 4, l);
         digestLong(bmemory, ARGON2_BLOCK_SIZE, initHash, sizeof(initHash));
-
-#ifdef DEBUG
-        std::fprintf(stderr, "Initial block 0 for lane %u: {\n", (unsigned)l);
-        for (std::size_t i = 0; i < ARGON2_BLOCK_SIZE / 8; i++) {
-            std::fprintf(stderr, "  0x");
-            for (std::size_t k = 0; k < 8; k++) {
-                std::fprintf(stderr, "%02x", (unsigned)bmemory[i * 8 + 7 - k]);
-            }
-            std::fprintf(stderr, "UL,\n");
-        }
-        std::fprintf(stderr, "}\n");
-#endif
 
         bmemory += ARGON2_BLOCK_SIZE;
     }
@@ -156,18 +136,6 @@ void Argon2Params::fillFirstBlocks(
     for (std::uint32_t l = 0; l < lanes; l++) {
         store32(initHash + ARGON2_PREHASH_DIGEST_LENGTH + 4, l);
         digestLong(bmemory, ARGON2_BLOCK_SIZE, initHash, sizeof(initHash));
-
-#ifdef DEBUG
-        std::fprintf(stderr, "Initial block 1 for lane %u: {\n", (unsigned)l);
-        for (std::size_t i = 0; i < ARGON2_BLOCK_SIZE / 8; i++) {
-            std::fprintf(stderr, "  0x");
-            for (std::size_t k = 0; k < 8; k++) {
-                std::fprintf(stderr, "%02x", (unsigned)bmemory[i * 8 + 7 - k]);
-            }
-            std::fprintf(stderr, "UL,\n");
-        }
-        std::fprintf(stderr, "}\n");
-#endif
 
         bmemory += ARGON2_BLOCK_SIZE;
     }
@@ -182,15 +150,6 @@ void Argon2Params::finalize(void *out, const void *memory) const
     };
 
     auto cursor = static_cast<const block *>(memory);
-#ifdef DEBUG
-    for (std::size_t l = 0; l < getLanes(); l++) {
-        for (std::size_t k = 0; k < ARGON2_BLOCK_SIZE / 8; k++) {
-            std::fprintf(stderr, "Block %04u [%3u]: %016llx\n",
-                         (unsigned)i, (unsigned)k,
-                         (unsigned long long)cursor[l].v[k]);
-        }
-    }
-#endif
 
     block xored = *cursor;
     for (std::uint32_t l = 1; l < lanes; l++) {
